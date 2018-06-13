@@ -11,7 +11,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 NSString *const IOStreamThreadName = @"com.smartdevicelink.iostream";
-NSTimeInterval const StreamThreadWaitSecs = 1.0;
+NSTimeInterval const StreamThreadWaitSecs = 0.1;
 
 @interface SDLIAPSession ()
 
@@ -137,7 +137,15 @@ NSTimeInterval const StreamThreadWaitSecs = 1.0;
         if (bytesWritten < 0) {
             if (ostream.streamError != nil) {
                 [self sdl_handleOutputStreamWriteError:ostream.streamError];
+            } else {
+                // The write operation failed but there is no further information about the error.
+                // This can occur when disconnecting from an external accessory.
+                SDLLogE(@"Output stream write operation failed");
             }
+            // Always flush the queue when a write operation fails to prevent deadlock in:
+            // [EAOutputStream _performAtEndOfStreamValidation]
+            // when disconnecting from an external accessory
+            // [self.sendDataQueue removeAllObjects];
         } else if (bytesWritten == bytesRemaining) {
             // Remove the data from the queue
             [self.sendDataQueue popBuffer];
