@@ -23,10 +23,6 @@ NS_ASSUME_NONNULL_BEGIN
     return [[self alloc] init];
 }
 
-- (instancetype)initWithSecurityManagers:(nullable NSArray<Class<SDLSecurityType>> *)securityManagers encryptionFlag:(SDLStreamingEncryptionFlag)encryptionFlag videoSettings:(nullable NSDictionary<NSString *,id> *)videoSettings dataSource:(nullable id<SDLStreamingMediaManagerDataSource>)dataSource window:(nullable UIWindow *)window {
-    return [self initWithSecurityManagers:securityManagers encryptionFlag:encryptionFlag videoSettings:videoSettings dataSource:dataSource rootViewController:window.rootViewController];
-}
-
 - (instancetype)initWithSecurityManagers:(nullable NSArray<Class<SDLSecurityType>> *)securityManagers encryptionFlag:(SDLStreamingEncryptionFlag)encryptionFlag videoSettings:(nullable NSDictionary<NSString *,id> *)videoSettings dataSource:(nullable id<SDLStreamingMediaManagerDataSource>)dataSource rootViewController:(nullable UIViewController *)rootViewController {
     self = [super init];
     if (!self) {
@@ -40,6 +36,7 @@ NS_ASSUME_NONNULL_BEGIN
     _rootViewController = rootViewController;
     _carWindowRenderingType = SDLCarWindowRenderingTypeLayer;
     _enableForcedFramerateSync = YES;
+    _allowMultipleViewControllerOrientations = NO;
 
     return self;
 }
@@ -63,20 +60,14 @@ NS_ASSUME_NONNULL_BEGIN
     return [[self alloc] initWithSecurityManagers:securityManagers encryptionFlag:SDLStreamingEncryptionFlagAuthenticateAndEncrypt videoSettings:nil dataSource:nil rootViewController:initialViewController];
 }
 
-#pragma mark - Getters / Setters
-- (void)setWindow:(nullable UIWindow *)window {
-    _window = window;
-    if (window != nil) {
-        _rootViewController = window.rootViewController;
-    }
-}
-
 #pragma mark NSCopying
 
 - (id)copyWithZone:(nullable NSZone *)zone {
     SDLStreamingMediaConfiguration *newConfig = [[self.class allocWithZone:zone] initWithSecurityManagers:_securityManagers encryptionFlag:_maximumDesiredEncryption videoSettings:_customVideoEncoderSettings dataSource:_dataSource rootViewController:_rootViewController];
 
     newConfig.carWindowRenderingType = self.carWindowRenderingType;
+    newConfig.enableForcedFramerateSync = self.enableForcedFramerateSync;
+    newConfig.allowMultipleViewControllerOrientations = self.allowMultipleViewControllerOrientations;
     
     return newConfig;
 }

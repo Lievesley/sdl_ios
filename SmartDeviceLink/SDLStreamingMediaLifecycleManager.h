@@ -15,10 +15,10 @@
 #import "SDLStreamingAudioManagerType.h"
 #import "SDLStreamingMediaManagerConstants.h"
 
-@class SDLAbstractProtocol;
 @class SDLAudioStreamManager;
 @class SDLCarWindow;
 @class SDLImageResolution;
+@class SDLProtocol;
 @class SDLStateMachine;
 @class SDLStreamingMediaConfiguration;
 @class SDLTouchManager;
@@ -37,6 +37,7 @@ typedef NSString SDLVideoStreamState;
 extern SDLVideoStreamState *const SDLVideoStreamStateStopped;
 extern SDLVideoStreamState *const SDLVideoStreamStateStarting;
 extern SDLVideoStreamState *const SDLVideoStreamStateReady;
+extern SDLVideoStreamState *const SDLVideoStreamStateSuspended;
 extern SDLVideoStreamState *const SDLVideoStreamStateShuttingDown;
 
 typedef NSString SDLAudioStreamState;
@@ -60,7 +61,7 @@ extern SDLAudioStreamState *const SDLAudioStreamStateShuttingDown;
 
 @property (copy, nonatomic, nullable) SDLHMILevel hmiLevel;
 
-@property (assign, nonatomic, readonly, getter=shouldRestartVideoStream) BOOL restartVideoStream;
+@property (assign, nonatomic, readonly, getter=shouldRestartVideoStream) BOOL restartVideoStream __deprecated_msg("This is now unused as the stream doesn't restart anymore. The video stream suspends and resumes if the app changed the state during active video stream");
 
 /**
  *  Touch Manager responsible for providing touch event notifications.
@@ -177,7 +178,7 @@ extern SDLAudioStreamState *const SDLAudioStreamStateShuttingDown;
 /**
  *  Start the manager with a completion block that will be called when startup completes. This is used internally. To use an SDLStreamingMediaManager, you should use the manager found on `SDLManager`.
  */
-- (void)startWithProtocol:(SDLAbstractProtocol *)protocol;
+- (void)startWithProtocol:(SDLProtocol *)protocol;
 
 /**
  *  Stop the manager. This method is used internally.

@@ -33,10 +33,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation SDLFocusableItemLocator
 
-- (instancetype)initWithWindow:(UIWindow *)window connectionManager:(id<SDLConnectionManagerType>)connectionManager{
-    return [self initWithViewController:window.rootViewController connectionManager:connectionManager];
-}
-
 - (instancetype)initWithViewController:(UIViewController *)viewController connectionManager:(id<SDLConnectionManagerType>)connectionManager {
     self = [super init];
     if(!self) {
@@ -121,7 +117,7 @@ NS_ASSUME_NONNULL_BEGIN
     }
     
     SDLSendHapticData* hapticRPC = [[SDLSendHapticData alloc] initWithHapticRectData:hapticRects];
-    [self.connectionManager sendManagerRequest:hapticRPC withResponseHandler:nil];
+    [self.connectionManager sendConnectionManagerRequest:hapticRPC withResponseHandler:nil];
 }
 
 #pragma mark SDLFocusableItemHitTester functions
