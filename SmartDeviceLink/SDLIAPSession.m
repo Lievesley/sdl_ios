@@ -11,7 +11,6 @@
 NS_ASSUME_NONNULL_BEGIN
 
 NSString *const IOStreamThreadName = @"com.smartdevicelink.iostream";
-NSTimeInterval const StreamThreadWaitSecs = 0.1;
 
 @interface SDLIAPSession ()
 
@@ -80,7 +79,6 @@ NSTimeInterval const StreamThreadWaitSecs = 0.1;
 }
 
 - (void)stop {
-    // This method must be called on the main thread
     if ([NSThread isMainThread]) {
         [self sdl_stop];
     } else {
@@ -91,15 +89,12 @@ NSTimeInterval const StreamThreadWaitSecs = 0.1;
 }
 
 - (void)sdl_stop {
+    NSParameterAssert([NSThread.currentThread isMainThread]);
     if (self.isDataSession) {
         [self.ioStreamThread cancel];
 
-        long lWait = dispatch_semaphore_wait(self.canceledSemaphore, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(StreamThreadWaitSecs * NSEC_PER_SEC)));
-        if (lWait == 0) {
-            SDLLogW(@"Stream thread cancelled");
-        } else {
-            SDLLogE(@"Failed to cancel stream thread");
-        }
+        long lWait = dispatch_semaphore_wait(self.canceledSemaphore, DISPATCH_TIME_FOREVER);
+        NSAssert(lWait == 0, @"Failed to cancel stream thread");
         self.ioStreamThread = nil;
         self.isDataSession = NO;
     } else {
@@ -181,13 +176,10 @@ NSTimeInterval const StreamThreadWaitSecs = 0.1;
         [self startStream:self.easession.outputStream];
 
         SDLLogD(@"Starting the accessory event loop");
-        do {
-            if (self.sendDataQueue.count > 0 && !self.sendDataQueue.frontDequeued) {
-                [self sdl_dequeueAndWriteToOutputStream];
-            }
-            // The principle here is to give the event loop enough time to process stream events while also allowing it to handle new enqueued data buffers in a timely manner. We're capping the run loop CPU time at 0.25s maximum before it will return control to the rest of the loop.
+        while (!NSThread.currentThread.cancelled) {
+            // Enqueued data will be written to the stream in the event loop
             [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.25f]];
-        } while (![NSThread currentThread].cancelled);
+        }
 
         SDLLogD(@"Closing the accessory session for id: %tu, name: %@", self.easession.accessory.connectionID, self.easession.accessory.name);
 

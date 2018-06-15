@@ -547,24 +547,33 @@ int const ProtocolIndexTimeoutSeconds = 10;
 #pragma mark Data Stream
 
 - (SDLStreamEndHandler)sdl_dataStreamEndedHandler {
+    NSAssert(![NSThread.currentThread isMainThread], @"%@ should only be called on the IO thread", NSStringFromSelector(_cmd));
+
     __weak typeof(self) weakSelf = self;
     
     return ^(NSStream *stream) {
         __strong typeof(weakSelf) strongSelf = weakSelf;
         SDLLogD(@"Data stream ended");
-        if (strongSelf.session != nil) {
-            // The handler will be called on the IO thread, but the session stop method must be called on the main thread and we need to wait for the session to stop before nil'ing it out. To do this, we use dispatch_sync() on the main thread.
-            dispatch_sync(dispatch_get_main_queue(), ^{
-                [strongSelf.session stop];
-            });
+        if (!strongSelf.session) {
+            SDLLogD(@"Data session is nil");
+            return;
+        }
+        // The handler will be called on the IO thread, but the session stop method must be called on the main thread
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [strongSelf.session stop];
             strongSelf.session.streamDelegate = nil;
             strongSelf.session = nil;
-        }
-        // We don't call sdl_retryEstablishSession here because the stream end event usually fires when the accessory is disconnected
+            
+            // We don't call sdl_retryEstablishSession here because the stream end event usually fires when the accessory is disconnected
+        });
+        
+        // To prevent deadlocks the handler must return to the runloop and not block the thread
     };
 }
 
 - (SDLStreamHasBytesHandler)sdl_dataStreamHasBytesHandler {
+    NSAssert(![NSThread.currentThread isMainThread], @"%@ should only be called on the IO thread", NSStringFromSelector(_cmd));
+
     __weak typeof(self) weakSelf = self;
     
     return ^(NSInputStream *istream) {
@@ -595,19 +604,23 @@ int const ProtocolIndexTimeoutSeconds = 10;
 }
 
 - (SDLStreamErrorHandler)sdl_dataStreamErroredHandler {
+    NSAssert(![NSThread.currentThread isMainThread], @"%@ should only be called on the IO thread", NSStringFromSelector(_cmd));
+    
     __weak typeof(self) weakSelf = self;
     
     return ^(NSStream *stream) {
         __strong typeof(weakSelf) strongSelf = weakSelf;
         SDLLogE(@"Data stream error");
-        dispatch_sync(dispatch_get_main_queue(), ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
             [strongSelf.session stop];
+            strongSelf.session.streamDelegate = nil;
+            strongSelf.session = nil;
+            if (![LegacyProtocolString isEqualToString:strongSelf.session.protocol]) {
+                [strongSelf sdl_retryEstablishSession];
+            }
         });
-        strongSelf.session.streamDelegate = nil;
-        strongSelf.session = nil;
-        if (![LegacyProtocolString isEqualToString:strongSelf.session.protocol]) {
-            [strongSelf sdl_retryEstablishSession];
-        }
+        
+        // To prevent deadlocks the handler must return to the runloop and not block the thread
     };
 }
 
