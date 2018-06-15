@@ -547,12 +547,11 @@ int const ProtocolIndexTimeoutSeconds = 10;
 #pragma mark Data Stream
 
 - (SDLStreamEndHandler)sdl_dataStreamEndedHandler {
-    NSAssert(![NSThread.currentThread isMainThread], @"%@ should only be called on the IO thread", NSStringFromSelector(_cmd));
-
     __weak typeof(self) weakSelf = self;
-    
     return ^(NSStream *stream) {
+        NSAssert(![NSThread.currentThread isMainThread], @"%@ should only be called on the IO thread", NSStringFromSelector(_cmd));
         __strong typeof(weakSelf) strongSelf = weakSelf;
+
         SDLLogD(@"Data stream ended");
         if (!strongSelf.session) {
             SDLLogD(@"Data session is nil");
@@ -572,13 +571,10 @@ int const ProtocolIndexTimeoutSeconds = 10;
 }
 
 - (SDLStreamHasBytesHandler)sdl_dataStreamHasBytesHandler {
-    NSAssert(![NSThread.currentThread isMainThread], @"%@ should only be called on the IO thread", NSStringFromSelector(_cmd));
-
     __weak typeof(self) weakSelf = self;
-    
     return ^(NSInputStream *istream) {
+        NSAssert(![NSThread.currentThread isMainThread], @"%@ should only be called on the IO thread", NSStringFromSelector(_cmd));
         __strong typeof(weakSelf) strongSelf = weakSelf;
-        
         uint8_t buf[[[SDLGlobals sharedGlobals] mtuSizeForServiceType:SDLServiceTypeRPC]];
         while (istream.streamStatus == NSStreamStatusOpen && istream.hasBytesAvailable) {
             // It is necessary to check the stream status and whether there are bytes available because the dataStreamHasBytesHandler is executed on the IO thread and the accessory disconnect notification arrives on the main thread, causing data to be passed to the delegate while the main thread is tearing down the transport.
@@ -604,11 +600,9 @@ int const ProtocolIndexTimeoutSeconds = 10;
 }
 
 - (SDLStreamErrorHandler)sdl_dataStreamErroredHandler {
-    NSAssert(![NSThread.currentThread isMainThread], @"%@ should only be called on the IO thread", NSStringFromSelector(_cmd));
-    
     __weak typeof(self) weakSelf = self;
-    
     return ^(NSStream *stream) {
+        NSAssert(![NSThread.currentThread isMainThread], @"%@ should only be called on the IO thread", NSStringFromSelector(_cmd));
         __strong typeof(weakSelf) strongSelf = weakSelf;
         SDLLogE(@"Data stream error");
         dispatch_async(dispatch_get_main_queue(), ^{
