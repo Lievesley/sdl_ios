@@ -11,6 +11,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 NSString *const IOStreamThreadName = @"com.smartdevicelink.iostream";
+NSTimeInterval const StreamThreadWaitSecs = 10.0;
 
 @interface SDLIAPSession ()
 
@@ -93,8 +94,12 @@ NSString *const IOStreamThreadName = @"com.smartdevicelink.iostream";
     if (self.isDataSession) {
         [self.ioStreamThread cancel];
 
-        long lWait = dispatch_semaphore_wait(self.canceledSemaphore, DISPATCH_TIME_FOREVER);
-        NSAssert(lWait == 0, @"Failed to cancel stream thread");
+        long lWait = dispatch_semaphore_wait(self.canceledSemaphore, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(StreamThreadWaitSecs * NSEC_PER_SEC)));
+        if (lWait == 0) {
+            SDLLogW(@"Stream thread cancelled");
+        } else {
+            SDLLogE(@"Failed to cancel stream thread");
+        }
         self.ioStreamThread = nil;
         self.isDataSession = NO;
     } else {
@@ -137,10 +142,6 @@ NSString *const IOStreamThreadName = @"com.smartdevicelink.iostream";
                 // This can occur when disconnecting from an external accessory.
                 SDLLogE(@"Output stream write operation failed");
             }
-            // Always flush the queue when a write operation fails to prevent deadlock in:
-            // [EAOutputStream _performAtEndOfStreamValidation]
-            // when disconnecting from an external accessory
-            // [self.sendDataQueue removeAllObjects];
         } else if (bytesWritten == bytesRemaining) {
             // Remove the data from the queue
             [self.sendDataQueue popBuffer];
